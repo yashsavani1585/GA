@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* body {
+  font-family: 'Georgia', 'Times New Roman', serif;
+} */
+
+/* Hide scrollbar but still scrollable */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
