@@ -1,4 +1,4 @@
-# EverGlow Jewellers - Admin Panel
+# SPARKLE & SHINE - Admin Panel
 
 A comprehensive admin panel for managing the EverGlow Jewellers e-commerce store.
 
