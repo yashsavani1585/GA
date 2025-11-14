@@ -46,10 +46,11 @@ import FAQs from "./components/FAQs/FAQs";
 import Checkout from "./Page/Checkout";
 import PaymentSuccess from "./Page/PaymentSuccess";
 import MockPayment from "./Page/MockPayment";
+import CertificateCard from "./Page/CertificateCard";
 
 const App = () => {
 
-  const phoneNumber = "917201004243"; // Use full number with country code if needed (e.g., 917265077755 for India)
+  const phoneNumber = "919909288061"; // Use full number with country code if needed (e.g., 917265077755 for India)
   const defaultText = encodeURIComponent("Hello! I want to know more about your products.");
 
   const handleWhatsAppClick = () => {
@@ -110,6 +111,7 @@ const App = () => {
               <Route path="/checkout" element={<Checkout/>} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/mock-payment" element={<MockPayment/>} />
+              <Route path="/certificate" element={<CertificateCard />} />
 
 
             </Routes>
