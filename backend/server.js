@@ -79,6 +79,9 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true }));
+
 
 // API ROUTES
 app.use("/api/user", userRouter);

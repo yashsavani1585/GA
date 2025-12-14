@@ -2744,28 +2744,362 @@
 //   );
 // }
 
+// import React, { useEffect, useState, useRef } from "react";
+// import axios from "axios";
+// import { getUserIdFromToken } from "../../utils/auth.js";
+// import ReCAPTCHA from "react-google-recaptcha";
+// import { toast } from "react-hot-toast";
+
+// const formatIN = (n) => Number(n || 0).toLocaleString("en-IN");
+
+// // API BASES
+// const ORDER_BASE = import.meta.env.VITE_API_BASE_URL
+//   ? `${import.meta.env.VITE_API_BASE_URL}/order`
+//   : "http://localhost:4000/api/order";
+
+// const PAYMENT_BASE = import.meta.env.VITE_API_BASE_URL
+//   ? `${import.meta.env.VITE_API_BASE_URL}/payment`
+//   : "http://localhost:4000/api/payment";
+
+// const RECAPTCHA_SITE_KEY =
+//   import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+//   "6LfRQc8rAAAAAIU4Ytl3Lnl0vvAWO0m0HeXwt2ci";
+
+// export default function MyOrder() {
+//   const [orders, setOrders] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [cancelModal, setCancelModal] = useState({ open: false, order: null });
+//   const [isProcessing, setIsProcessing] = useState(false);
+//   const [captchaToken, setCaptchaToken] = useState(null);
+//   const [errorMsg, setErrorMsg] = useState("");
+//   const recaptchaRef = useRef(null);
+
+//   // ✅ Fetch user orders
+//   const fetchOrders = async () => {
+//     try {
+//       setLoading(true);
+//       const userId = getUserIdFromToken();
+//       if (!userId) return setOrders([]);
+
+//       // Fetch user's order list
+//       const res = await axios.get(`${ORDER_BASE}/my-orders/${userId}`);
+
+//       if (res.data?.success && res.data.orders?.length > 0) {
+//         const formattedOrders = res.data.orders.map((o) => {
+//           const mainImage =
+//             o.image ||
+//             o.productImage ||
+//             o.auctionImage ||
+//             (o.items?.[0]?.image ?? "https://placehold.co/600x600?text=No+Image");
+
+//           return {
+//             ...o,
+//             mainImage,
+//             items: o.items?.map((i) => ({
+//               ...i,
+//               image:
+//                 i.image ||
+//                 o.productImage ||
+//                 o.auctionImage ||
+//                 mainImage ||
+//                 "https://placehold.co/600x600?text=No+Image",
+//             })),
+//           };
+//         });
+
+//         setOrders(formattedOrders);
+//       } else {
+//         setOrders([]);
+//       }
+//     } catch (err) {
+//       console.error("Error fetching orders:", err);
+//       setOrders([]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // ✅ Payment success redirect handler
+//   useEffect(() => {
+//     const params = new URLSearchParams(window.location.search);
+//     const paymentRef = params.get("paymentRef");
+
+//     if (paymentRef) {
+//       const fetchPaymentDetails = async () => {
+//         try {
+//           const res = await axios.get(`${PAYMENT_BASE}/details/${paymentRef}`);
+//           if (res.data?.success && res.data.payment) {
+//             toast.success("Payment verified successfully!");
+//             await fetchOrders(); // Refresh orders after verification
+//           }
+//         } catch (err) {
+//           console.error("Payment detail fetch error:", err);
+//           toast.error("Error verifying payment details.");
+//         } finally {
+//           // Clean URL
+//           window.history.replaceState({}, document.title, "/my-orders");
+//         }
+//       };
+
+//       fetchPaymentDetails();
+//     }
+//   }, []);
+
+//   useEffect(() => {
+//     fetchOrders();
+//   }, []);
+
+//   // 🔹 Cancel modal controls
+//   const openCancelModal = (order) => {
+//     setErrorMsg("");
+//     setCaptchaToken(null);
+//     recaptchaRef.current?.reset();
+//     setCancelModal({ open: true, order });
+//   };
+
+//   const closeCancelModal = () => {
+//     setCancelModal({ open: false, order: null });
+//     setIsProcessing(false);
+//     setCaptchaToken(null);
+//     setErrorMsg("");
+//     recaptchaRef.current?.reset();
+//   };
+
+//   const onCaptchaChange = (token) => {
+//     setCaptchaToken(token);
+//     setErrorMsg("");
+//   };
+
+//   // 🔹 Handle order cancel
+//   const handleConfirmCancel = async () => {
+//     const order = cancelModal?.order;
+//     if (!order) return setErrorMsg("No order selected.");
+
+//     const hoursPassed =
+//       (Date.now() - new Date(order.createdAt).getTime()) / 1000 / 60 / 60;
+
+//     if (hoursPassed > 24)
+//       return setErrorMsg("Cannot cancel order after 24 hours.");
+
+//     if (!captchaToken) return setErrorMsg("Complete the Captcha first.");
+
+//     if (!order.paymentRef && !order.razorpayPaymentId)
+//       return setErrorMsg("Missing payment reference.");
+
+//     try {
+//       setIsProcessing(true);
+
+//       const token = localStorage.getItem("token");
+//       if (!token) return setErrorMsg("You must be logged in.");
+
+//       const res = await axios.post(
+//         `${PAYMENT_BASE}/refund`,
+//         {
+//           order_id: order.order_id,
+//           payment_id: order.paymentRef || order.razorpayPaymentId,
+//           token: captchaToken,
+//         },
+//         {
+//           headers: { Authorization: `Bearer ${token}` },
+//         }
+//       );
+
+//       if (res.data?.success) {
+//         setOrders((prev) =>
+//           prev.map((o) =>
+//             o._id === order._id
+//               ? { ...o, deliveryStatus: "Canceled", paymentStatus: "refunded" }
+//               : o
+//           )
+//         );
+//         closeCancelModal();
+//         toast.success("Order canceled successfully!");
+//       } else {
+//         setErrorMsg(res.data?.message || "Failed to cancel order.");
+//       }
+//     } catch (err) {
+//       console.error("Cancel error:", err);
+//       setErrorMsg(
+//         err.response?.data?.message || "Server error while canceling order."
+//       );
+//     } finally {
+//       setIsProcessing(false);
+//     }
+//   };
+
+//   // ✅ UI Rendering
+//   return (
+//     <div className="max-w-6xl mx-auto my-10 px-4">
+//       <h1 className="text-3xl font-bold mb-8 text-gray-900">My Orders</h1>
+
+//       {loading ? (
+//         <p className="text-center py-20 text-gray-600 text-lg">
+//           Loading your orders...
+//         </p>
+//       ) : orders.length === 0 ? (
+//         <div className="text-center py-20 bg-white rounded-xl shadow-md">
+//           <img
+//             src="https://placehold.co/300x200?text=No+Orders"
+//             className="mx-auto mb-4 rounded-lg"
+//           />
+//           <p className="text-gray-500 text-lg">
+//             You haven’t placed any orders yet.
+//           </p>
+//         </div>
+//       ) : (
+//         <div className="space-y-6">
+//           {orders.map((order) => {
+//             const hoursPassed =
+//               (Date.now() - new Date(order.createdAt).getTime()) / 3600000;
+//             const canCancel =
+//               hoursPassed <= 24 && order.paymentStatus !== "refunded";
+
+//             return (
+//               <div
+//                 key={order._id}
+//                 className="bg-white shadow-lg rounded-xl p-6 border hover:shadow-xl transition"
+//               >
+//                 {/* HEADER */}
+//                 <div className="flex flex-col md:flex-row justify-between border-b pb-4 mb-4">
+//                   <div>
+//                     <p className="text-gray-500 text-sm">
+//                       Order ID: {order.order_id}
+//                     </p>
+//                     <p className="text-gray-500 text-sm">
+//                       PaymentRef: {order.paymentRef || "N/A"}
+//                     </p>
+//                     <p className="text-gray-400 text-sm">
+//                       Placed On: {new Date(order.createdAt).toLocaleString()}
+//                     </p>
+//                   </div>
+//                   <p className="text-xl font-bold text-gray-900 mt-3 md:mt-0">
+//                     ₹{formatIN(order.amount)}
+//                   </p>
+//                 </div>
+
+//                 {/* ITEMS */}
+//                 <div className="grid sm:grid-cols-2 gap-4">
+//                   {order.items.map((item, idx) => (
+//                     <div
+//                       key={idx}
+//                       className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50"
+//                     >
+//                       <img
+//                         src={item.image}
+//                         alt={item.name}
+//                         className="w-24 h-24 object-cover rounded-lg"
+//                       />
+//                       <div>
+//                         <h3 className="font-semibold text-gray-800">
+//                           {item.name}
+//                         </h3>
+//                         <p className="text-sm text-gray-500">
+//                           Qty: {item.quantity}
+//                         </p>
+//                       </div>
+//                     </div>
+//                   ))}
+//                 </div>
+
+//                 {/* FOOTER */}
+//                 <div className="mt-4 flex justify-between items-center flex-wrap gap-2">
+//                   <div className="flex gap-2 flex-wrap">
+//                     <span className="px-3 py-1 rounded-full bg-gray-100 capitalize">
+//                       {order.paymentStatus}
+//                     </span>
+//                     <span className="px-3 py-1 rounded-full bg-yellow-100 capitalize">
+//                       {order.deliveryStatus}
+//                     </span>
+//                   </div>
+
+//                   {canCancel ? (
+//                     <button
+//                       onClick={() => openCancelModal(order)}
+//                       className="px-5 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700"
+//                     >
+//                       Cancel Order
+//                     </button>
+//                   ) : (
+//                     <button className="px-5 py-2 rounded-lg bg-gray-400 text-white cursor-not-allowed">
+//                       Cannot Cancel
+//                     </button>
+//                   )}
+//                 </div>
+//               </div>
+//             );
+//           })}
+//         </div>
+//       )}
+
+//       {/* CANCEL MODAL */}
+//       {cancelModal.open && (
+//         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+//           <div
+//             className="absolute inset-0 bg-black opacity-40"
+//             onClick={closeCancelModal}
+//           />
+//           <div className="relative bg-white w-full max-w-md p-6 rounded-xl shadow-2xl">
+//             <h2 className="text-xl font-semibold mb-3">
+//               Confirm Order Cancellation
+//             </h2>
+//             {errorMsg && (
+//               <div className="text-red-600 text-sm mb-2">{errorMsg}</div>
+//             )}
+//             <ReCAPTCHA
+//               ref={recaptchaRef}
+//               sitekey={RECAPTCHA_SITE_KEY}
+//               onChange={onCaptchaChange}
+//               className="mb-4"
+//             />
+//             <div className="flex justify-end gap-3">
+//               <button
+//                 onClick={closeCancelModal}
+//                 className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+//                 disabled={isProcessing}
+//               >
+//                 Close
+//               </button>
+//               <button
+//                 onClick={handleConfirmCancel}
+//                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+//                 disabled={isProcessing || !captchaToken}
+//               >
+//                 {isProcessing ? "Processing..." : "Confirm Cancel"}
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// src/pages/MyOrderMerged.jsx
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { getUserIdFromToken } from "../../utils/auth.js";
 import ReCAPTCHA from "react-google-recaptcha";
 import { toast } from "react-hot-toast";
 
-const formatIN = (n) => Number(n || 0).toLocaleString("en-IN");
-
-// API BASES
-const ORDER_BASE = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/order`
-  : "http://localhost:4000/api/order";
-
-const PAYMENT_BASE = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/payment`
-  : "http://localhost:4000/api/payment";
-
 const RECAPTCHA_SITE_KEY =
-  import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
-  "6LfRQc8rAAAAAIU4Ytl3Lnl0vvAWO0m0HeXwt2ci";
+  import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfRQc8rAAAAAIU4Ytl3Lnl0vvAWO0m0HeXwt2ci";
 
-export default function MyOrder() {
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const ORDER_BASE = `${API_BASE}/order`;
+const PAYMENT_RECORD_BASE = `${API_BASE}/order`; // my-orders2 lives under same route: /order/my-orders2/:userId
+const PAYMENT_BASE = `${API_BASE}/payment`; // for /details or refund
+
+const rupeesFromPaise = (paise) => {
+  if (paise == null) return "0.00";
+  const n = Number(paise || 0) / 100;
+  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const formatIN = (n) =>
+  Number(n || 0)
+    .toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export default function MyOrderMerged() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelModal, setCancelModal] = useState({ open: false, order: null });
@@ -2774,121 +3108,181 @@ export default function MyOrder() {
   const [errorMsg, setErrorMsg] = useState("");
   const recaptchaRef = useRef(null);
 
-  // ✅ Fetch user orders
-  const fetchOrders = async () => {
+  // Fetch both endpoints and merge
+  const fetchMergedOrders = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const userId = getUserIdFromToken();
-      if (!userId) return setOrders([]);
-
-      // Fetch user's order list
-      const res = await axios.get(`${ORDER_BASE}/my-orders/${userId}`);
-
-      if (res.data?.success && res.data.orders?.length > 0) {
-        const formattedOrders = res.data.orders.map((o) => {
-          const mainImage =
-            o.image ||
-            o.productImage ||
-            o.auctionImage ||
-            (o.items?.[0]?.image ?? "https://placehold.co/600x600?text=No+Image");
-
-          return {
-            ...o,
-            mainImage,
-            items: o.items?.map((i) => ({
-              ...i,
-              image:
-                i.image ||
-                o.productImage ||
-                o.auctionImage ||
-                mainImage ||
-                "https://placehold.co/600x600?text=No+Image",
-            })),
-          };
-        });
-
-        setOrders(formattedOrders);
-      } else {
+      if (!userId) {
         setOrders([]);
+        return;
       }
+
+      // parallel requests
+      const [ordersRes, prRes] = await Promise.allSettled([
+        axios.get(`${ORDER_BASE}/my-orders/${encodeURIComponent(userId)}`),
+        axios.get(`${PAYMENT_RECORD_BASE}/my-orders2/${encodeURIComponent(userId)}`),
+      ]);
+
+      const ordersData = ordersRes.status === "fulfilled" && ordersRes.value.data?.orders ? ordersRes.value.data.orders : [];
+      const prData = prRes.status === "fulfilled" && prRes.value.data?.records ? prRes.value.data.records : [];
+
+      // build lookup maps from PaymentRecord side by keys
+      const prByPaymentRef = new Map();
+      const prByRazorpayOrder = new Map();
+      const prByRazorpayPayment = new Map();
+      const prByOrderId = new Map();
+
+      prData.forEach((r) => {
+        if (r.paymentRef) prByPaymentRef.set(String(r.paymentRef), r);
+        if (r.order_id) prByOrderId.set(String(r.order_id), r);
+        if (r.razorpayOrderId) prByRazorpayOrder.set(String(r.razorpayOrderId), r);
+        if (r.razorpayPaymentId) prByRazorpayPayment.set(String(r.razorpayPaymentId), r);
+      });
+
+      // merge: for each order prefer PaymentRecord (by order.paymentRef / razorpay ids / order_id)
+      const merged = ordersData.map((o) => {
+        // try to find a matching PR
+        let pr = null;
+
+        if (o.paymentRef && prByPaymentRef.has(String(o.paymentRef))) pr = prByPaymentRef.get(String(o.paymentRef));
+        if (!pr && o.order_id && prByOrderId.has(String(o.order_id))) pr = prByOrderId.get(String(o.order_id));
+        if (!pr && o.razorpayOrderId && prByRazorpayOrder.has(String(o.razorpayOrderId))) pr = prByRazorpayOrder.get(String(o.razorpayOrderId));
+        if (!pr && o.razorpayPaymentId && prByRazorpayPayment.has(String(o.razorpayPaymentId))) pr = prByRazorpayPayment.get(String(o.razorpayPaymentId));
+
+        // fallback: try matching by paymentRef string to PR.paymentRef
+        if (!pr && o.paymentRef) {
+          const p = prData.find((x) => x.paymentRef === o.paymentRef);
+          if (p) pr = p;
+        }
+
+        // decide final display values preferring PR when available
+        const amountPaise = pr?.amountPaise ?? (o.amountPaise ?? (o.amount ? Math.round(Number(o.amount) * 100) : null));
+        const amountDisplay = amountPaise != null ? rupeesFromPaise(amountPaise) : (o.amount ? formatIN(o.amount) : "0.00");
+        const depositPaise = pr?.depositPaise ?? (o.depositPaise ?? 0);
+        const depositDisplay = rupeesFromPaise(depositPaise);
+        const amountDuePaise = pr?.amountDuePaise ?? (o.amountDuePaise ?? Math.max(0, (amountPaise || 0) - (depositPaise || 0)));
+        const amountDueDisplay = rupeesFromPaise(amountDuePaise);
+        const paymentLinkUrl = pr?.paymentLinkUrl ?? (pr?.paymentLinkUrl === undefined ? null : null);
+
+        return {
+          ...o,
+          // overlay PR fields
+          paymentRecord: pr || null,
+          paymentLinkUrl: pr?.paymentLinkUrl || null,
+          providerResponse: pr?.providerResponse || (o.providerResponse || null),
+          amountPaise,
+          amountDisplay,
+          depositPaise,
+          depositDisplay,
+          amountDuePaise,
+          amountDueDisplay,
+        };
+      });
+
+      // Also include any PaymentRecords that do NOT have an Order in ordersData (optional - useful if you want to show standalone paymentRecords)
+      // Add PR-only items keyed by paymentRef if not present in merged list
+      const existingOrderIds = new Set(merged.map((m) => String(m.order_id || m._id)));
+      prData.forEach((r) => {
+        const key = String(r.order_id || r.paymentRef || r._id);
+        if (!existingOrderIds.has(key)) {
+          merged.push({
+            _id: `pr_${r._id}`,
+            order_id: r.order_id || r.paymentRef || null,
+            items: r.items || [],
+            createdAt: r.createdAt,
+            amountPaise: r.amountPaise,
+            amountDisplay: rupeesFromPaise(r.amountPaise),
+            depositPaise: r.depositPaise || 0,
+            depositDisplay: rupeesFromPaise(r.depositPaise),
+            amountDuePaise: r.amountDuePaise || 0,
+            amountDueDisplay: rupeesFromPaise(r.amountDuePaise || 0),
+            paymentRef: r.paymentRef,
+            paymentRecord: r,
+            paymentLinkUrl: r.paymentLinkUrl || null,
+            providerResponse: r.providerResponse || null,
+            paymentStatus: r.status || "PENDING",
+            deliveryStatus: "N/A",
+          });
+        }
+      });
+
+      // sort by createdAt desc
+      merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      setOrders(merged);
     } catch (err) {
-      console.error("Error fetching orders:", err);
-      setOrders([]);
+      console.error("fetchMergedOrders error:", err);
+      toast.error("Failed to load orders");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Payment success redirect handler
+  useEffect(() => {
+    fetchMergedOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Payment success handling via query param (existing flow)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paymentRef = params.get("paymentRef");
-
     if (paymentRef) {
-      const fetchPaymentDetails = async () => {
+      (async () => {
         try {
-          const res = await axios.get(`${PAYMENT_BASE}/details/${paymentRef}`);
+          const res = await axios.get(`${PAYMENT_BASE}/details/${encodeURIComponent(paymentRef)}`);
           if (res.data?.success && res.data.payment) {
             toast.success("Payment verified successfully!");
-            await fetchOrders(); // Refresh orders after verification
+            await fetchMergedOrders();
+          } else {
+            toast.error("Payment verification failed.");
           }
         } catch (err) {
           console.error("Payment detail fetch error:", err);
           toast.error("Error verifying payment details.");
         } finally {
-          // Clean URL
-          window.history.replaceState({}, document.title, "/my-orders");
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
-      };
-
-      fetchPaymentDetails();
+      })();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  // 🔹 Cancel modal controls
+  // Cancel modal + refund logic (same as before)
   const openCancelModal = (order) => {
     setErrorMsg("");
     setCaptchaToken(null);
-    recaptchaRef.current?.reset();
+    recaptchaRef.current?.reset?.();
     setCancelModal({ open: true, order });
   };
-
   const closeCancelModal = () => {
     setCancelModal({ open: false, order: null });
     setIsProcessing(false);
     setCaptchaToken(null);
     setErrorMsg("");
-    recaptchaRef.current?.reset();
+    recaptchaRef.current?.reset?.();
   };
-
   const onCaptchaChange = (token) => {
     setCaptchaToken(token);
     setErrorMsg("");
   };
 
-  // 🔹 Handle order cancel
   const handleConfirmCancel = async () => {
     const order = cancelModal?.order;
     if (!order) return setErrorMsg("No order selected.");
-
-    const hoursPassed =
-      (Date.now() - new Date(order.createdAt).getTime()) / 1000 / 60 / 60;
-
-    if (hoursPassed > 24)
-      return setErrorMsg("Cannot cancel order after 24 hours.");
-
+    const hoursPassed = (Date.now() - new Date(order.createdAt).getTime()) / 3600000;
+    if (hoursPassed > 24) return setErrorMsg("Cannot cancel order after 24 hours.");
     if (!captchaToken) return setErrorMsg("Complete the Captcha first.");
 
-    if (!order.paymentRef && !order.razorpayPaymentId)
-      return setErrorMsg("Missing payment reference.");
+    // Determine payment id to refund: prefer paymentRecord.razorpayPaymentId or paymentRef or order.razorpayPaymentId
+    const paymentId =
+      order.paymentRecord?.razorpayPaymentId || order.paymentRecord?.paymentRef || order.paymentRef || order.razorpayPaymentId;
+
+    if (!paymentId) return setErrorMsg("Missing payment reference.");
 
     try {
       setIsProcessing(true);
-
       const token = localStorage.getItem("token");
       if (!token) return setErrorMsg("You must be logged in.");
 
@@ -2896,134 +3290,130 @@ export default function MyOrder() {
         `${PAYMENT_BASE}/refund`,
         {
           order_id: order.order_id,
-          payment_id: order.paymentRef || order.razorpayPaymentId,
+          payment_id: paymentId,
           token: captchaToken,
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (res.data?.success) {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o._id === order._id
-              ? { ...o, deliveryStatus: "Canceled", paymentStatus: "refunded" }
-              : o
-          )
-        );
+        toast.success("Order canceled/refund initiated");
+        // refresh
+        await fetchMergedOrders();
         closeCancelModal();
-        toast.success("Order canceled successfully!");
       } else {
         setErrorMsg(res.data?.message || "Failed to cancel order.");
       }
     } catch (err) {
       console.error("Cancel error:", err);
-      setErrorMsg(
-        err.response?.data?.message || "Server error while canceling order."
-      );
+      setErrorMsg(err.response?.data?.message || "Server error while canceling order.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // ✅ UI Rendering
+  // Open payment link in new tab (if paymentLinkUrl exists), else open frontend checkout if available
+  const openPayment = (order) => {
+    if (order.paymentLinkUrl) {
+      window.open(order.paymentLinkUrl, "_blank");
+      return;
+    }
+    // try to open frontend checkout if paymentRecord has order id or frontendCheckoutUrl
+    const r = order.paymentRecord;
+    if (r && r.frontendCheckoutUrl) {
+      window.location.href = r.frontendCheckoutUrl;
+      return;
+    }
+    toast.error("Payment link not available");
+  };
+
   return (
     <div className="max-w-6xl mx-auto my-10 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-gray-900">My Orders</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-900">My Orders (Merged)</h1>
 
       {loading ? (
-        <p className="text-center py-20 text-gray-600 text-lg">
-          Loading your orders...
-        </p>
+        <p className="text-center py-20 text-gray-600 text-lg">Loading orders...</p>
       ) : orders.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl shadow-md">
-          <img
-            src="https://placehold.co/300x200?text=No+Orders"
-            className="mx-auto mb-4 rounded-lg"
-          />
-          <p className="text-gray-500 text-lg">
-            You haven’t placed any orders yet.
-          </p>
+          <img src="https://placehold.co/300x200?text=No+Orders" className="mx-auto mb-4 rounded-lg" />
+          <p className="text-gray-500 text-lg">You haven’t placed any orders yet.</p>
         </div>
       ) : (
         <div className="space-y-6">
           {orders.map((order) => {
-            const hoursPassed =
-              (Date.now() - new Date(order.createdAt).getTime()) / 3600000;
-            const canCancel =
-              hoursPassed <= 24 && order.paymentStatus !== "refunded";
+            const hoursPassed = (Date.now() - new Date(order.createdAt).getTime()) / 3600000;
+            const canCancel = hoursPassed <= 24 && order.paymentStatus !== "refunded";
 
             return (
-              <div
-                key={order._id}
-                className="bg-white shadow-lg rounded-xl p-6 border hover:shadow-xl transition"
-              >
-                {/* HEADER */}
+              <div key={order._id} className="bg-white shadow-lg rounded-xl p-6 border hover:shadow-xl transition">
+                {/* header */}
                 <div className="flex flex-col md:flex-row justify-between border-b pb-4 mb-4">
                   <div>
-                    <p className="text-gray-500 text-sm">
-                      Order ID: {order.order_id}
-                    </p>
-                    <p className="text-gray-500 text-sm">
-                      PaymentRef: {order.paymentRef || "N/A"}
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      Placed On: {new Date(order.createdAt).toLocaleString()}
-                    </p>
+                    <p className="text-gray-500 text-sm">Order ID: {order.order_id || order._id}</p>
+                    <p className="text-gray-500 text-sm">PaymentRef: {order.paymentRef || order.paymentRecord?.paymentRef || "N/A"}</p>
+                    <p className="text-gray-400 text-sm">Placed On: {new Date(order.createdAt).toLocaleString()}</p>
                   </div>
-                  <p className="text-xl font-bold text-gray-900 mt-3 md:mt-0">
-                    ₹{formatIN(order.amount)}
-                  </p>
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-gray-900">₹{order.amountDisplay || formatIN(order.amount)}</div>
+                    <div className="text-sm text-gray-500">Due: ₹{order.amountDueDisplay || "0.00"}</div>
+                  </div>
                 </div>
 
-                {/* ITEMS */}
+                {/* items */}
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {order.items.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50"
-                    >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-24 h-24 object-cover rounded-lg"
-                      />
+                  {(order.items || []).map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-4 p-3 border rounded-lg bg-gray-50">
+                      <img src={item.image || "https://placehold.co/120x120?text=No+Image"} alt={item.name} className="w-24 h-24 object-cover rounded-lg" />
                       <div>
-                        <h3 className="font-semibold text-gray-800">
-                          {item.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          Qty: {item.quantity}
-                        </p>
+                        <h3 className="font-semibold text-gray-800">{item.name}</h3>
+                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                        {item.pricePaise && <p className="text-sm text-gray-600">Price: ₹{rupeesFromPaise(item.pricePaise)}</p>}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* FOOTER */}
-                <div className="mt-4 flex justify-between items-center flex-wrap gap-2">
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="px-3 py-1 rounded-full bg-gray-100 capitalize">
-                      {order.paymentStatus}
-                    </span>
-                    <span className="px-3 py-1 rounded-full bg-yellow-100 capitalize">
-                      {order.deliveryStatus}
-                    </span>
+                {/* payment info */}
+                <div className="mt-3">
+                  <div className="text-sm mb-2">
+                    <span className="font-medium">Status: </span>
+                    <span className="text-gray-700">{(order.paymentStatus || order.paymentRecord?.status || "PENDING").toUpperCase()}</span>
                   </div>
 
-                  {canCancel ? (
-                    <button
-                      onClick={() => openCancelModal(order)}
-                      className="px-5 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700"
-                    >
-                      Cancel Order
-                    </button>
-                  ) : (
-                    <button className="px-5 py-2 rounded-lg bg-gray-400 text-white cursor-not-allowed">
-                      Cannot Cancel
-                    </button>
+                  {order.paymentLinkUrl && (
+                    <div className="text-sm mb-2">
+                      <span className="font-medium">Payment Link: </span>
+                      <a className="text-blue-600" href={order.paymentLinkUrl} target="_blank" rel="noreferrer">{order.paymentLinkUrl}</a>
+                    </div>
                   )}
+
+                  {order.paymentRecord && (
+                    <div className="text-xs text-gray-500">
+                      <div>PaymentRecord ID: {order.paymentRecord._id}</div>
+                      <div>Razorpay Order ID: {order.paymentRecord.razorpayOrderId}</div>
+                      <div>Razorpay Payment ID: {order.paymentRecord.razorpayPaymentId}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* footer actions */}
+                <div className="mt-4 flex justify-between items-center flex-wrap gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="px-3 py-1 rounded-full bg-gray-100 capitalize">{(order.paymentStatus || order.paymentRecord?.status || "PENDING").toLowerCase()}</span>
+                    <span className="px-3 py-1 rounded-full bg-yellow-100 capitalize">{order.deliveryStatus || "Order Placed"}</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button onClick={() => openPayment(order)} className="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                      {order.paymentLinkUrl ? `Pay ₹${order.amountDueDisplay}` : "Pay"}
+                    </button>
+
+                    {canCancel ? (
+                      <button onClick={() => openCancelModal(order)} className="px-5 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700">Cancel Order</button>
+                    ) : (
+                      <button className="px-5 py-2 rounded-lg bg-gray-400 text-white cursor-not-allowed">Cannot Cancel</button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -3031,39 +3421,17 @@ export default function MyOrder() {
         </div>
       )}
 
-      {/* CANCEL MODAL */}
+      {/* cancel modal */}
       {cancelModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div
-            className="absolute inset-0 bg-black opacity-40"
-            onClick={closeCancelModal}
-          />
+          <div className="absolute inset-0 bg-black opacity-40" onClick={closeCancelModal} />
           <div className="relative bg-white w-full max-w-md p-6 rounded-xl shadow-2xl">
-            <h2 className="text-xl font-semibold mb-3">
-              Confirm Order Cancellation
-            </h2>
-            {errorMsg && (
-              <div className="text-red-600 text-sm mb-2">{errorMsg}</div>
-            )}
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={RECAPTCHA_SITE_KEY}
-              onChange={onCaptchaChange}
-              className="mb-4"
-            />
+            <h2 className="text-xl font-semibold mb-3">Confirm Order Cancellation</h2>
+            {errorMsg && <div className="text-red-600 text-sm mb-2">{errorMsg}</div>}
+            <ReCAPTCHA ref={recaptchaRef} sitekey={RECAPTCHA_SITE_KEY} onChange={onCaptchaChange} className="mb-4" />
             <div className="flex justify-end gap-3">
-              <button
-                onClick={closeCancelModal}
-                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                disabled={isProcessing}
-              >
-                Close
-              </button>
-              <button
-                onClick={handleConfirmCancel}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                disabled={isProcessing || !captchaToken}
-              >
+              <button onClick={closeCancelModal} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300" disabled={isProcessing}>Close</button>
+              <button onClick={handleConfirmCancel} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg" disabled={isProcessing || !captchaToken}>
                 {isProcessing ? "Processing..." : "Confirm Cancel"}
               </button>
             </div>

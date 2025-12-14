@@ -169,6 +169,7 @@ import Payment2 from "../models/Payment2.js";
 import { sendAuctionWinEmail } from "../config/emailService.js";
 import { generatePaymentLink } from "../config/paymentService.js";
 import mongoose from "mongoose";
+import PaymentRecord from "../models/PaymentRecord.js";
 // import { clearCart } from "../utils/cart.js";
 // import razorpay from "../config/razorpay.js";
 // import crypto from "crypto";
@@ -1012,6 +1013,76 @@ export const getMyOrders = async (req, res) => {
     });
   }
 };
+
+export const getOrdersFromPaymentRecord = async (req, res) => {
+  try {
+    // support "me" or passing userId param; prefer authenticated user if available
+    const paramUserId = req.params.userId;
+    const userId = req.user?.id || (paramUserId === "me" ? null : paramUserId);
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized - missing user id" });
+    }
+
+    // ensure valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(String(userId))) {
+      return res.status(400).json({ success: false, message: "Invalid userId" });
+    }
+
+    // Query PaymentRecord for the user and return full docs.
+    // We populate auction (select a few fields) and user (name,email) to give more context.
+    const records = await PaymentRecord.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate({ path: "auction", select: "title productName image" })
+      .populate({ path: "user", select: "name email" })
+      .lean()
+      .exec();
+
+    // If nothing found, return empty array (success)
+    if (!records || records.length === 0) {
+      return res.json({ success: true, count: 0, records: [] });
+    }
+
+    // Normalize and present a friendly shape while preserving raw providerResponse
+    const out = records.map((r) => ({
+      _id: r._id,
+      order_id: r.order_id || r.paymentRef || null,
+      user: r.user || null,
+      auction: r.auction || r.auctionId || null,
+      amountPaise: Number(r.amountPaise || 0),
+      amountRupees: Number(((Number(r.amountPaise || 0) / 100) || 0).toFixed(2)),
+      currency: r.currency || "INR",
+      status: r.status,
+      razorpayOrderId: r.razorpayOrderId || null,
+      razorpayPaymentId: r.razorpayPaymentId || null,
+      razorpaySignature: r.razorpaySignature || null,
+      paymentRef: r.paymentRef || null,
+      paymentLinkUrl: r.paymentLinkUrl || (r.providerResponse && (r.providerResponse.short_url || r.providerResponse.data?.short_url)) || null,
+      items: r.items || [],
+      depositPercent: r.depositPercent ?? null,
+      depositPaise: Number(r.depositPaise || 0),
+      depositRupees: Number(((Number(r.depositPaise || 0) / 100) || 0).toFixed(2)),
+      depositAmountPaise: r.depositAmountPaise ?? null,
+      amountDuePaise: Number(r.amountDuePaise || 0),
+      amountDueRupees: Number(((Number(r.amountDuePaise || 0) / 100) || 0).toFixed(2)),
+      providerResponse: r.providerResponse || null, // raw provider response (can be large)
+      receipt: r.receipt || null,
+      address: r.address || {},
+      mobile: r.mobile || "",
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      raw: r, // include entire raw doc if you need it on frontend (optional)
+    }));
+
+    return res.json({ success: true, count: out.length, records: out });
+  } catch (err) {
+    console.error("[getOrdersFromPaymentRecord] error:", err);
+    return res.status(500).json({ success: false, message: err.message || "Server error" });
+  }
+};
+
+
+
 
 
 
