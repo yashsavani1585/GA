@@ -1,163 +1,4 @@
-// import orderModel from "../models/orderModel.js";
-// import userModel from "../models/userModel.js";
-// import Stripe from 'stripe'
-//global variables
-// const currency = 'inr'
-// const deliveryCharge = 10
-//gateway initialized
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
-// Placing orders using COD method
-// const placeOrder = async (req,res) => {
-//     try {
-//         const {userId, items, amount, address} = req.body;
-
-//         const orderData = {
-//             userId,
-//             items,
-//             address,
-//             amount,
-//             paymentMethod:"COD",
-//             payment:false,
-//             date: Date.now()
-//         }
-
-//         const newOrder = new orderModel(orderData)
-//         await newOrder.save()
-
-//         await userModel.findByIdAndUpdate(userId, {cartData:{}})
-
-//         res.json({success:true, message:"Order Placed"})
-
-//     } catch (error) {
-//         console.log(error);
-//         res.json({success:false, message:error.message})
-
-//     }
-// }
-
-// Placing orders using Stripe method
-// const placeOrderStripe = async (req,res) => {
-//     try {
-
-//         const {userId, items, amount, address} = req.body;
-//         const {origin} = req.headers;
-
-//         const orderData = {
-//             userId,
-//             items,
-//             address,
-//             amount,
-//             paymentMethod:"Stripe",
-//             payment:false,
-//             date: Date.now()
-//         }
-
-//         const newOrder = new orderModel(orderData)
-//         await newOrder.save()
-
-//         const line_items = items.map((item)=>({
-//             price_data:{
-//                 currency:currency,
-//                 product_data:{
-//                     name:item.name
-//                 },
-//                 unit_amount: item.price * 100
-//             },
-//             quantity: item.quantity
-//         }))
-
-//         line_items.push({
-//             price_data:{
-//                 currency:currency,
-//                 product_data:{
-//                     name:'Delivery Charges'
-//                 },
-//                 unit_amount: deliveryCharge * 100
-//             },
-//             quantity: 1
-//         })
-
-//         const session = await stripe.checkout.sessions.create({
-//             success_url:`${origin}/verify?success=true&orderId=${newOrder._id}`,
-//             cancel_url:`${origin}/verify?success=true&orderId=${newOrder._id}`,
-//             line_items,
-//             mode:'payment',
-//         })
-
-//         res.json({success:true, session_url:session.url})
-
-//     } catch (error) {
-//         console.log(error);
-//         res.json({success:false, message:error.message})
-//     }
-// }
-
-// Verify Stripe
-// const verifyStripe = async(req,res) => {
-
-//     const {orderId, success, userId} = req.body
-
-//     try {
-//         if (success === "true") {
-//             await orderModel.findById(orderId, {payment:true});
-//             await userModel.findByIdAndUpdate(userId, {cartData:{}})
-//             res.json({success:true});
-
-//         }
-//         else{
-//             await orderModel.findOneAndDelete(orderId)
-//             res.json({success:false})
-//         }
-//     } catch (error) {
-//         console.log(error);
-//         res.json({success:false, message:error.message})
-//     }
-// }
-
-// Placing orders using Razorpay method
-// const placeOrderRazorpay = async (req,res) => {
-
-// }
-
-// // All Orders data for admin panel
-// const allOrders = async (req,res) => {
-//     try {
-//         const orders = await orderModel.find({})
-//         res.json({success:true, orders})
-//     } catch (error) {
-//         console.log(error);
-//         res.json({success:false, message:error.message})
-//     }
-// }
-
-// // User Orders data for Frontend
-// const userOrders = async (req,res) => {
-//     try {
-
-//         const {userId} = req.body
-//         const orders = await orderModel.find({userId})
-//         res.json({success:true, orders})
-
-//     } catch (error) {
-//         console.log(error);
-//         res.json({success:false, message:error.message})
-//     }
-// }
-
-// // update order status from AdminPanel
-// const updateStatus = async (req,res) => {
-//     try {
-//         const {orderId, status} = req.body
-//         await orderModel.findByIdAndUpdate(orderId, {status})
-//         res.json({success:true, message:'Status Updated'})
-//     } catch (error) {
-//         console.log(error);
-//         res.json({success:false, message:error.message})
-//     }
-// }
-
-// export {placeOrder, placeOrderRazorpay, allOrders, userOrders, updateStatus}
 
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
@@ -258,20 +99,76 @@ const placeOrderRazorpay = async (req, res) => {
 //   }
 // };
 
+//  const allOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.find({}).lean();
+//     const paymentRecords = await PaymentRecord.find({ order_id: { $in: orders.map(o => o.order_id) } }).lean();
+//     const paymentRecordMap = {};
+
+//     const formattedOrders = orders.map((o) => ({
+//       ...o,
+//       isCanceled: o.isCanceled,
+//       isRefunded: o.isRefunded,
+//     }));
+
+//     const pay
+
+//     res.json({ success: true, orders: formattedOrders });
+//   } catch (error) {
+//     console.error("[allOrders] error:", error);
+//     res.json({ success: false, message: error.message });
+//   }
+// };
+
  const allOrders = async (req, res) => {
   try {
+    // 1️⃣ Fetch all orders
     const orders = await Order.find({}).lean();
 
-    const formattedOrders = orders.map((o) => ({
-      ...o,
-      isCanceled: o.isCanceled,
-      isRefunded: o.isRefunded,
-    }));
+    // 2️⃣ Fetch all payment records related to those orders
+    const paymentRecords = await PaymentRecord.find({
+      order_id: { $in: orders.map(o => o.order_id) }
+    }).lean();
 
-    res.json({ success: true, orders: formattedOrders });
+    // 3️⃣ Create map: order_id → paymentRecord
+    const paymentRecordMap = {};
+    paymentRecords.forEach(pr => {
+      paymentRecordMap[pr.order_id] = pr;
+    });
+
+    // 4️⃣ Merge Order + PaymentRecord
+    const formattedOrders = orders.map((o) => {
+      const payment = paymentRecordMap[o.order_id] || null;
+
+      return {
+        /* ============ ORDER DATA ============ */
+        ...o,
+        isCanceled: o.isCanceled,
+        isRefunded: o.isRefunded,
+
+        /* ============ PAYMENT RECORD DATA ============ */
+        paymentRecord: payment
+          ? {
+              ...payment,
+              amountRupees: payment.amountPaise / 100,
+              depositRupees: payment.depositPaise / 100,
+              amountDueRupees: payment.amountDuePaise / 100,
+            }
+          : null,
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: formattedOrders.length,
+      orders: formattedOrders,
+    });
   } catch (error) {
     console.error("[allOrders] error:", error);
-    res.json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -334,573 +231,6 @@ const updateStatus = async (req, res) => {
 
 
 
-// export const getMyOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id || req.params.userId;
-//     if (!userId) {
-//       return res.status(401).json({ success: false, message: "Unauthorized" });
-//     }
-
-//     // Fetch all successful payments for this user
-//     const payments = await Payment.find({ userId, status: "SUCCESS" })
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     const orders = await Promise.all(
-//       payments.map(async (payment) => {
-//         // Fetch the corresponding order from orderModel using paymentId
-//         const order = await orderModel.findOne({ paymentId: payment._id.toString() }).lean();
-
-//         if (!order) {
-//           console.warn(`Order not found for paymentId: ${payment._id}`);
-//           return null; // Skip if no matching order found
-//         }
-
-//         // Map cart items with images
-//         const items = await Promise.all(
-//           Object.entries(payment.cartData || {}).map(async ([productId, productDetails]) => {
-//             let image = "https://placehold.co/600x600?text=No+Image";
-
-//             try {
-//               const product = await Product.findById(productId).select("image thumbnail").lean();
-//               if (product) {
-//                 image = (Array.isArray(product.image) && product.image[0]) || product.thumbnail || image;
-//               }
-//             } catch {}
-
-//             return {
-//               productId,
-//               ...productDetails.gold,
-//               image,
-//             };
-//           })
-//         );
-
-//         return {
-//           _id: order._id,           // MongoDB _id of the order
-//           order_id: order.order_id, // UUID generated after payment (THIS IS THE CORRECT ORDER ID)
-//           amount: payment.amount,
-//           paymentStatus: payment.status,
-//           deliveryStatus: order.status || "Processing",
-//           createdAt: order.createdAt,
-//           userId: payment.userId,
-//           address: order.address || {},
-//           items,
-//         };
-//       })
-//     );
-
-//     // Filter out nulls if some payments did not have matching orders
-//     const filteredOrders = orders.filter((o) => o !== null);
-
-//     res.json({ success: true, count: filteredOrders.length, orders: filteredOrders });
-//   } catch (err) {
-//     console.error("[getMyOrders] error:", err);
-//     res.status(500).json({ success: false, message: err.message || "Server error" });
-//   }
-// };
-
-// export const getMyOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id || req.params.userId;
-//     if (!userId)
-//       return res.status(401).json({ success: false, message: "Unauthorized" });
-
-//     // Fetch all successful payments for this user
-//     const payments = await Payment.find({ userId, status: "SUCCESS" })
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     const orders = await Promise.all(
-//       payments.map(async (payment) => {
-//         // Find order using Razorpay payment ID (consistent with verifyPayment)
-//         const order = await Order.findOne({
-//           $or: [
-//             { order_id: payment.order_id },
-//             { paymentId: payment.paymentId },
-//             { paymentRef: payment._id }
-//           ]
-//         }).lean();
-
-//          if (!order) {
-//           console.warn(`Order not found for paymentId/order_id: ${payment.paymentId || payment.order_id}`);
-//           return null;
-//         }
-
-//         // Map cart items with images
-//         const items = await Promise.all(
-//           Object.entries(payment.cartData || {}).map(async ([productId, productDetails]) => {
-//             let image = "https://placehold.co/600x600?text=No+Image";
-//             try {
-//               const product = await Product.findById(productId)
-//                 .select("image thumbnail")
-//                 .lean();
-//               if (product) {
-//                 image =
-//                   (Array.isArray(product.image) && product.image[0]) ||
-//                   product.thumbnail ||
-//                   image;
-//               }
-//             } catch { }
-
-//             return {
-//               productId,
-//               ...productDetails.gold,
-//               image,
-//             };
-//           })
-//         );
-
-//         return {
-//           _id: order._id,
-//           order_id: order.order_id,
-//           amount: payment.amount,
-//           paymentStatus: payment.status,
-//           deliveryStatus: order.status || "Processing",
-//           createdAt: order.createdAt,
-//           userId: payment.userId,
-//           address: order.address || {},
-//           items,
-//         };
-//       })
-//     );
-
-//     const filteredOrders = orders.filter((o) => o !== null);
-
-//     res.json({ success: true, count: filteredOrders.length, orders: filteredOrders });
-//   } catch (err) {
-//     console.error("[getMyOrders] error:", err);
-//     res.status(500).json({ success: false, message: err.message || "Server error" });
-//   }
-// };
-
-
-
-
-
-// export const getMyOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id || req.params.userId;
-//     if (!userId)
-//       return res.status(401).json({ success: false, message: "Unauthorized" });
-
-//     const orders = await Order.find({ userId })
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     const result = await Promise.all(
-//       orders.map(async (order) => {
-//         let payment = null;
-
-//         // Preferred: paymentRef
-//         if (order.paymentRef) {
-//           payment = await Payment.findById(order.paymentRef).lean();
-//         }
-
-//         // Fallback: razorpayPaymentId or order_id
-//         if (!payment) {
-//           payment = await Payment.findOne({
-//             $or: [
-//               { razorpayPaymentId: order.razorpayPaymentId || order.order_id },
-//               { razorpayPaymentId: Payment.razorpayPaymentId || order.razorpayPaymentId },
-//               { order_id: order.order_id },
-//             ],
-//           }).lean();
-//         }
-
-//         // If no payment found, set default
-//         if (!payment) {
-//           console.warn(`[getMyOrders] Payment not found for order: ${order._id}`);
-//           return {
-//             ...order,
-//             amount: 0,
-//             paymentStatus: "PENDING",
-//             deliveryStatus: order.status || "Processing",
-//             items: order.items || [],
-//             paymentRef: null,
-//           };
-//         }
-
-//         // Map items with images
-//         const items = await Promise.all(
-//           (order.items || []).map(async (item) => {
-//             let image = "https://placehold.co/600x600?text=No+Image";
-//             if (item.productId) {
-//               try {
-//                 const product = await Product.findById(item.productId)
-//                   .select("image thumbnail")
-//                   .lean();
-//                 if (product) {
-//                   image =
-//                     (Array.isArray(product.image) && product.image[0]) ||
-//                     product.thumbnail ||
-//                     image;
-//                 }
-//               } catch (err) {
-//                 console.warn("[getMyOrders] Product fetch error:", err.message);
-//               }
-//             }
-//             return {
-//               ...item,
-//               image,
-//             };
-//           })
-//         );
-
-//         return {
-//           _id: order._id,
-//           order_id: order.order_id,
-//           amount: payment.amount,
-//           paymentStatus: payment.status,
-//           deliveryStatus: order.status || "Processing",
-//           createdAt: order.createdAt,
-//           userId: order.userId,
-//           address: order.address || {},
-//           items,
-//           paymentRef: payment._id, // <-- ensures frontend gets correct payment_id
-//         };
-//       })
-//     );
-
-//     res.json({
-//       success: true,
-//       count: result.length,
-//       orders: result,
-//     });
-//   } catch (err) {
-//     console.error("[getMyOrders] error:", err);
-//     res.status(500).json({ success: false, message: err.message || "Server error" });
-//   }
-// };
-
-// export const getMyOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id || req.params.userId;
-
-//     if (!userId)
-//       return res
-//         .status(401)
-//         .json({ success: false, message: "Unauthorized: Missing userId" });
-
-//     // ✅ Fetch all orders for this user
-//     const orders = await Order.find({ userId })
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     if (!orders.length) {
-//       return res.json({ success: true, count: 0, orders: [] });
-//     }
-
-//     // ✅ Prepare orders with linked payment info
-//     const result = await Promise.all(
-//       orders.map(async (order) => {
-//         let payment = null;
-
-//         // ✅ 1. Find payment by reference stored in order (if available)
-//         if (order.paymentRef && mongoose.Types.ObjectId.isValid(order.paymentRef)) {
-//           payment = await Payment2.findById(order.paymentRef).lean();
-//         }
-
-//         // ✅ 2. Fallback: find payment using other identifiers
-//         if (!payment) {
-//           payment = await Payment2.findOne({
-//             $or: [
-//               { razorpayPaymentId: order.razorpayPaymentId },
-//               { razorpayOrderId: order.razorpayOrderId },
-//               { order_id: order.order_id },
-//             ],
-//           }).lean();
-//         }
-
-//         // ✅ 3. If still not found, return a mock PENDING payment
-//         if (!payment) {
-//           payment = {
-//             _id: null,
-//             amount: order.amount || order.winnerBidAmount || 0,
-//             status: "PENDING",
-//             razorpayPaymentId: "N/A",
-//             razorpayOrderId: order.razorpayOrderId || "N/A",
-//           };
-//         }
-
-//         // ✅ Normalize item images
-//         const items = (order.items || []).map((item) => ({
-//           ...item,
-//           image:
-//             item.image ||
-//             order.productImage ||
-//             order.auctionImage ||
-//             "https://placehold.co/600x600?text=No+Image",
-//         }));
-
-//         // ✅ Final formatted object sent to frontend
-//         return {
-//           _id: order._id,
-//           order_id: order.order_id || order._id.toString(),
-//           razorpayOrderId: payment.razorpayOrderId,
-//           razorpayPaymentId: payment.razorpayPaymentId,
-//           amount: payment.amount,
-//           paymentStatus: payment.status?.toUpperCase() || "PENDING",
-//           deliveryStatus:
-//             order.status ||
-//             order.deliveryStatus ||
-//             "Order Placed",
-//           createdAt: order.createdAt,
-//           userId: order.userId,
-//           address: order.address || {},
-//           items,
-//           paymentRef: payment._id,
-//         };
-//       })
-//     );
-
-//     // ✅ Send response
-//     res.json({
-//       success: true,
-//       count: result.length,
-//       orders: result,
-//     });
-//   } catch (err) {
-//     console.error("[getMyOrders] error:", err);
-//     res
-//       .status(500)
-//       .json({ success: false, message: "Server Error: " + err.message });
-//   }
-// };
-
-// export const getMyOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id || req.params.userId;
-
-//     if (!userId) {
-//       return res.status(401).json({
-//         success: false,
-//         message: "Unauthorized: Missing userId",
-//       });
-//     }
-
-//     // ✅ Fetch orders for this user
-//     const orders = await Order.find({ userId })
-//       .sort({ createdAt: -1 })
-//       .lean();
-
-//     if (!orders || orders.length === 0) {
-//       return res.json({
-//         success: true,
-//         count: 0,
-//         orders: [],
-//       });
-//     }
-
-//     // ✅ Combine order + payment info
-//     const result = await Promise.all(
-//       orders.map(async (order) => {
-//         let payment = null;
-
-//         // ✅ Step 1: Try to find by stored reference
-//         if (order.paymentRef && mongoose.Types.ObjectId.isValid(order.paymentRef)) {
-//           payment = await Payment2.findById(order.paymentRef).lean();
-//         }
-
-//         // ✅ Step 2: Fallback search by known fields
-//         if (!payment) {
-//           payment = await Payment2.findOne({
-//             $or: [
-//               { razorpayPaymentId: order.razorpayPaymentId },
-//               { razorpayOrderId: order.razorpayOrderId },
-//               { order_id: order.order_id },
-//             ],
-//           }).lean();
-//         }
-
-//         // ✅ Step 3: Create a safe fallback if not found
-//         if (!payment) {
-//           payment = {
-//             _id: null,
-//             amount: order.amount || order.winnerBidAmount || 0,
-//             status: "PENDING",
-//             razorpayPaymentId: "N/A",
-//             razorpayOrderId: order.razorpayOrderId || "N/A",
-//           };
-//         }
-
-//         // ✅ Step 4: Normalize item images
-//         const items = (order.items || []).map((item) => ({
-//           ...item,
-//           image:
-//             item.image ||
-//             order.productImage ||
-//             order.auctionImage ||
-//             "https://placehold.co/600x600?text=No+Image",
-//         }));
-
-//         // ✅ Step 5: Return clean formatted response
-//         return {
-//           _id: order._id,
-//           order_id: order.order_id || order._id.toString(),
-//           razorpayOrderId: payment.razorpayOrderId,
-//           razorpayPaymentId: payment.razorpayPaymentId,
-//           amount: payment.amount,
-//           paymentStatus: payment.status?.toUpperCase() || "PENDING",
-//           deliveryStatus:
-//             order.status ||
-//             order.deliveryStatus ||
-//             "Order Placed",
-//           createdAt: order.createdAt,
-//           userId: order.userId,
-//           address: order.address || {},
-//           items,
-//           paymentRef: payment._id,
-//         };
-//       })
-//     );
-
-//     // ✅ Send final response
-//     return res.json({
-//       success: true,
-//       count: result.length,
-//       orders: result,
-//     });
-//   } catch (err) {
-//     console.error("[getMyOrders] error:", err);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server Error: " + err.message,
-//     });
-//   }
-// };
-
-
-// export const getMyOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id || req.params.userId;
-
-//     if (!userId) {
-//       return res.status(401).json({
-//         success: false,
-//         message: "Unauthorized: Missing userId",
-//       });
-//     }
-
-//     const orders = await Order.find({ userId }).sort({ createdAt: -1 }).lean();
-
-//     if (!orders.length) {
-//       return res.json({ success: true, count: 0, orders: [] });
-//     }
-
-//     const result = await Promise.all(
-//       orders.map(async (order) => {
-//         let payment = null;
-
-//         // ✅ Try direct reference first
-//         if (order.paymentRef && mongoose.Types.ObjectId.isValid(order.paymentRef)) {
-//           payment = await Payment2.findById(order.paymentRef).lean();
-//         }
-
-//         // ✅ Fallback find
-//         if (!payment) {
-//           payment = await Payment2.findOne({
-//             $or: [
-//               { razorpayPaymentId: order.razorpayPaymentId },
-//               { razorpayOrderId: order.razorpayOrderId },
-//               { order_id: order.order_id },
-//             ],
-//           }).lean();
-//         }
-
-//         if (!payment) {
-//           payment = {
-//             _id: null,
-//             amount: order.amount,
-//             status: order.paymentStatus || "PENDING",
-//             razorpayPaymentId: "N/A",
-//             razorpayOrderId: order.razorpayOrderId || "N/A",
-//           };
-//         }
-
-//         return {
-//           _id: order._id,
-//           order_id: order.order_id,
-//           razorpayOrderId: payment.razorpayOrderId,
-//           razorpayPaymentId: payment.razorpayPaymentId,
-//           amount: payment.amount,
-//           paymentStatus: payment.status?.toUpperCase() || "PENDING",
-//           deliveryStatus: order.deliveryStatus,
-//           createdAt: order.createdAt,
-//           userId: order.userId,
-//           address: order.address || {},
-//           items: order.items || [],
-//           paymentRef: payment._id,
-//         };
-//       })
-//     );
-
-//     res.json({
-//       success: true,
-//       count: result.length,
-//       orders: result,
-//     });
-//   } catch (err) {
-//     console.error("[getMyOrders] error:", err);
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// export const getMyOrders = async (req, res) => {
-//   try {
-//     const userId = req.user?.id || req.params.userId;
-//     if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
-
-//     const orders = await Order.find({ userId }).sort({ createdAt: -1 }).lean();
-
-//     if (!orders || orders.length === 0) return res.json({ success: true, count: 0, orders: [] });
-
-//     const result = await Promise.all(orders.map(async (order) => {
-//       // prefer direct paymentRef -> Payment
-//       let payment = null;
-//       if (order.paymentRef && mongoose.Types.ObjectId.isValid(order.paymentRef)) {
-//         payment = await Payment.findById(order.paymentRef).lean();
-//       }
-
-//       // fallback find by razorpay ids
-//       if (!payment) {
-//         payment = await Payment.findOne({
-//           $or: [
-//             { razorpayPaymentId: order.razorpayPaymentId },
-//             { razorpayOrderId: order.razorpayOrderId },
-//             { order_id: order.order_id },
-//           ],
-//         }).lean();
-//       }
-
-//       if (!payment) {
-//         payment = { _id: null, amount: order.amount, status: order.paymentStatus || "PENDING", razorpayPaymentId: order.razorpayPaymentId || "N/A", razorpayOrderId: order.razorpayOrderId || "N/A" };
-//       }
-
-//       const items = (order.items || []).map(item => ({ ...item, image: item.image || order.productImage || "https://placehold.co/600x600?text=No+Image" }));
-
-//       return {
-//         _id: order._id,
-//         order_id: order.order_id,
-//         razorpayOrderId: payment.razorpayOrderId || order.razorpayOrderId,
-//         razorpayPaymentId: payment.razorpayPaymentId || order.razorpayPaymentId || "N/A",
-//         amount: payment.amount,
-//         paymentStatus: (payment.status || order.paymentStatus || "PENDING").toUpperCase(),
-//         deliveryStatus: order.deliveryStatus || "Order Placed",
-//         createdAt: order.createdAt,
-//         userId: order.userId,
-//         address: order.address || {},
-//         items,
-//         paymentRef: payment._id || null,
-//       };
-//     }));
-
-//     return res.json({ success: true, count: result.length, orders: result });
-//   } catch (err) {
-//     console.error("[getMyOrders] error:", err);
-//     return res.status(500).json({ success: false, message: err.message || "Server error" });
-//   }
-// };
 
 export const getMyOrders = async (req, res) => {
   try {
@@ -1014,70 +344,255 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
+// export const paymentRecoard = async (req, res) => {
+//   try {
+//     const paymentRecords = await PaymentRecord.find({}).lean();
+//     res.json({ success: true, paymentRecords });
+//   } catch (error) {
+//     console.log(error);
+//     res.json({ success: false, message: error.message });
+//   }
+// }
+
+// export const getOrdersFromPaymentRecord = async (req, res) => {
+//   try {
+//     // support "me" or passing userId param; prefer authenticated user if available
+//     const paramUserId = req.params.userId;
+//     const userId = req.user?.id || (paramUserId === "me" ? null : paramUserId);
+
+//     if (!userId) {
+//       return res.status(401).json({ success: false, message: "Unauthorized - missing user id" });
+//     }
+
+//     // ensure valid ObjectId
+//     if (!mongoose.Types.ObjectId.isValid(String(userId))) {
+//       return res.status(400).json({ success: false, message: "Invalid userId" });
+//     }
+
+//     // Query PaymentRecord for the user and return full docs.
+//     // We populate auction (select a few fields) and user (name,email) to give more context.
+//     const records = await PaymentRecord.find({ user: userId })
+//       .sort({ createdAt: -1 })
+//       .populate({ path: "auction", select: "title productName image" })
+//       .populate({ path: "user", select: "name email" })
+//       .lean()
+//       .exec();
+
+//     // If nothing found, return empty array (success)
+//     if (!records || records.length === 0) {
+//       return res.json({ success: true, count: 0, records: [] });
+//     }
+
+//     // Normalize and present a friendly shape while preserving raw providerResponse
+//     const out = records.map((r) => ({
+//       _id: r._id,
+//       order_id: r.order_id || r.paymentRef || null,
+//       user: r.user || null,
+//       auction: r.auction || r.auctionId || null,
+//       amountPaise: Number(r.amountPaise || 0),
+//       amountRupees: Number(((Number(r.amountPaise || 0) / 100) || 0).toFixed(2)),
+//       currency: r.currency || "INR",
+//       status: r.status,
+//       razorpayOrderId: r.razorpayOrderId || null,
+//       razorpayPaymentId: r.razorpayPaymentId || null,
+//       razorpaySignature: r.razorpaySignature || null,
+//       paymentRef: r.paymentRef || null,
+//       paymentLinkUrl: r.paymentLinkUrl || (r.providerResponse && (r.providerResponse.short_url || r.providerResponse.data?.short_url)) || null,
+//       items: r.items || [],
+//       depositPercent: r.depositPercent ?? null,
+//       depositPaise: Number(r.depositPaise || 0),
+//       depositRupees: Number(((Number(r.depositPaise || 0) / 100) || 0).toFixed(2)),
+//       depositAmountPaise: r.depositAmountPaise ?? null,
+//       amountDuePaise: Number(r.amountDuePaise || 0),
+//       amountDueRupees: Number(((Number(r.amountDuePaise || 0) / 100) || 0).toFixed(2)),
+//       providerResponse: r.providerResponse || null, // raw provider response (can be large)
+//       receipt: r.receipt || null,
+//       address: r.address || {},
+//       mobile: r.mobile || "",
+//       createdAt: r.createdAt,
+//       updatedAt: r.updatedAt,
+//       raw: r, // include entire raw doc if you need it on frontend (optional)
+//     }));
+
+//     return res.json({ success: true, count: out.length, records: out });
+//   } catch (err) {
+//     console.error("[getOrdersFromPaymentRecord] error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
+export const paymentRecords = async (req, res) => {
+  try {
+    // 1. All orders
+    const orders = await PaymentRecord.find({}).lean();
+
+    // 2. All related payment records
+    const paymentRecords = await PaymentRecord.find({
+      order_id: { $in: orders.map(o => o.order_id) },
+    })
+      .populate("user", "name email mobile")
+      .populate("auction", "title productName image")
+      .lean();
+
+    // 3. Map paymentRecord by order_id
+    const paymentMap = {};
+    paymentRecords.forEach(p => {
+      paymentMap[p.order_id] = p;
+    });
+
+    // 4. Merge data
+    const mergedOrders = orders.map(order => {
+      const payment = paymentMap[order.order_id] || null;
+
+      return {
+        ...order,
+
+        paymentRecord: payment
+          ? {
+              ...payment,
+              amountRupees: payment.amountPaise / 100,
+              depositRupees: payment.depositPaise / 100,
+              amountDueRupees: payment.amountDuePaise / 100,
+            }
+          : null,
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: mergedOrders.length,
+      orders: mergedOrders,
+    });
+  } catch (error) {
+    console.error("[paymentRecords] error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
 export const getOrdersFromPaymentRecord = async (req, res) => {
   try {
-    // support "me" or passing userId param; prefer authenticated user if available
-    const paramUserId = req.params.userId;
-    const userId = req.user?.id || (paramUserId === "me" ? null : paramUserId);
+    /**
+     * 1. Resolve userId
+     * Priority:
+     *  - Authenticated user (req.user.id)
+     *  - /me
+     *  - /:userId
+     */
+    let userId = null;
+
+    if (req.user?.id) {
+      userId = req.user.id;
+    } else if (req.params.userId && req.params.userId !== "me") {
+      userId = req.params.userId;
+    }
 
     if (!userId) {
-      return res.status(401).json({ success: false, message: "Unauthorized - missing user id" });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - User ID not found",
+      });
     }
 
-    // ensure valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(String(userId))) {
-      return res.status(400).json({ success: false, message: "Invalid userId" });
+    // 2. Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId",
+      });
     }
 
-    // Query PaymentRecord for the user and return full docs.
-    // We populate auction (select a few fields) and user (name,email) to give more context.
+    /**
+     * 3. Fetch payment records
+     */
     const records = await PaymentRecord.find({ user: userId })
       .sort({ createdAt: -1 })
-      .populate({ path: "auction", select: "title productName image" })
-      .populate({ path: "user", select: "name email" })
-      .lean()
-      .exec();
+      .populate({
+        path: "auction",
+        select: "title productName image startingPrice endTime",
+      })
+      .populate({
+        path: "user",
+        select: "name email mobile",
+      })
+      .lean();
 
-    // If nothing found, return empty array (success)
-    if (!records || records.length === 0) {
-      return res.json({ success: true, count: 0, records: [] });
+    // 4. No records → empty success response
+    if (!records.length) {
+      return res.json({
+        success: true,
+        count: 0,
+        records: [],
+      });
     }
 
-    // Normalize and present a friendly shape while preserving raw providerResponse
-    const out = records.map((r) => ({
+    /**
+     * 5. Normalize response (FULL DATA)
+     */
+    const formattedRecords = records.map((r) => ({
       _id: r._id,
+
+      // User & Auction
+      user: r.user,
+      auction: r.auction,
+
+      // Order / Payment IDs
       order_id: r.order_id || r.paymentRef || null,
-      user: r.user || null,
-      auction: r.auction || r.auctionId || null,
-      amountPaise: Number(r.amountPaise || 0),
-      amountRupees: Number(((Number(r.amountPaise || 0) / 100) || 0).toFixed(2)),
-      currency: r.currency || "INR",
-      status: r.status,
       razorpayOrderId: r.razorpayOrderId || null,
       razorpayPaymentId: r.razorpayPaymentId || null,
       razorpaySignature: r.razorpaySignature || null,
-      paymentRef: r.paymentRef || null,
-      paymentLinkUrl: r.paymentLinkUrl || (r.providerResponse && (r.providerResponse.short_url || r.providerResponse.data?.short_url)) || null,
-      items: r.items || [],
+
+      // Amounts
+      currency: r.currency || "INR",
+
+      amountPaise: Number(r.amountPaise || 0),
+      amountRupees: Number((r.amountPaise / 100).toFixed(2)),
+
       depositPercent: r.depositPercent ?? null,
       depositPaise: Number(r.depositPaise || 0),
-      depositRupees: Number(((Number(r.depositPaise || 0) / 100) || 0).toFixed(2)),
-      depositAmountPaise: r.depositAmountPaise ?? null,
+      depositRupees: Number((r.depositPaise / 100).toFixed(2)),
+
       amountDuePaise: Number(r.amountDuePaise || 0),
-      amountDueRupees: Number(((Number(r.amountDuePaise || 0) / 100) || 0).toFixed(2)),
-      providerResponse: r.providerResponse || null, // raw provider response (can be large)
+      amountDueRupees: Number((r.amountDuePaise / 100).toFixed(2)),
+
+      // Status & Meta
+      status: r.status,
       receipt: r.receipt || null,
-      address: r.address || {},
+      items: r.items || [],
+
+      // Contact / Address
       mobile: r.mobile || "",
+      address: r.address || {},
+
+      // Razorpay / Provider data
+      paymentRef: r.paymentRef || null,
+      paymentLinkUrl:
+        r.paymentLinkUrl ||
+        r.providerResponse?.short_url ||
+        r.providerResponse?.data?.short_url ||
+        null,
+
+      providerResponse: r.providerResponse || null, // FULL RAW RESPONSE
+
+      // Timestamps
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
-      raw: r, // include entire raw doc if you need it on frontend (optional)
     }));
 
-    return res.json({ success: true, count: out.length, records: out });
-  } catch (err) {
-    console.error("[getOrdersFromPaymentRecord] error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
+    return res.json({
+      success: true,
+      count: formattedRecords.length,
+      records: formattedRecords,
+    });
+  } catch (error) {
+    console.error("[getOrdersFromPaymentRecord]", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 

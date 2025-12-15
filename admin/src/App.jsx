@@ -20,6 +20,7 @@ import EditBlog from "./components/EditBlog";
 import AdminAuction from "./components/AdminAuction";
 import AdminVerification from "./components/AdminVerification";
 import AdsForm from "./components/AdminAdd";
+import AuctionOrderlist from "./pages/AuctionOrderlist";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const currency = "₹";
@@ -101,6 +102,10 @@ const App = () => {
               <Route
                 path="/admin/add"
                 element={<AdsForm token={token} />}
+              />
+              <Route
+                path="/admin/auction-orders"
+                element={<AuctionOrderlist token={token} />}
               />
             </Routes>
           </div>

@@ -124,6 +124,15 @@ const Sidebar = () => {
             <PlusCircle className="w-4 h-4" />
             <span>Auction Ads</span>
           </NavLink>
+          <NavLink
+            to="/admin/auction-orders"
+            className={({ isActive }) =>
+              `${linkBase} ${isActive ? linkActive : linkIdle}`
+            }
+          >
+            <Gem className="w-4 h-4" />
+            <span>Auction Order list</span>
+          </NavLink>
         </nav>
       </div>
 

@@ -22,7 +22,7 @@
 // export default orderRouter
 
 import express from 'express'
-import {placeOrder, placeOrderRazorpay, allOrders, userOrders, updateStatus, getMyOrders, saveOrderAddress, getOrdersFromPaymentRecord} from '../controllers/orderController.js'
+import {placeOrder, placeOrderRazorpay, allOrders, userOrders, updateStatus, getMyOrders, saveOrderAddress, getOrdersFromPaymentRecord, paymentRecords} from '../controllers/orderController.js'
 import adminAuth from '../middleware/adminAuth.js'
 import { authUser } from "../middleware/auth.js";
 const orderRouter = express.Router()
@@ -32,6 +32,7 @@ orderRouter.post('/list', allOrders)
 orderRouter.post('/status', updateStatus)
 orderRouter.get("/my-orders/:userId", getMyOrders);
 orderRouter.get("/my-orders2/:userId",getOrdersFromPaymentRecord);
+orderRouter.get("/payment-records", paymentRecords);
 
 
 
