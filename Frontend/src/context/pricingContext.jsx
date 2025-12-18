@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback } 
 import axios from "axios";
 import PropTypes from "prop-types";
 
-const backendUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const backendUrl = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 
 // Shared cache for gold rates
 const RATE_TTL_MS = 60_000; // 60 seconds

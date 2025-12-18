@@ -3084,7 +3084,7 @@ import { toast } from "react-hot-toast";
 const RECAPTCHA_SITE_KEY =
   import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LfRQc8rAAAAAIU4Ytl3Lnl0vvAWO0m0HeXwt2ci";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 const ORDER_BASE = `${API_BASE}/order`;
 const PAYMENT_RECORD_BASE = `${API_BASE}/order`; // my-orders2 lives under same route: /order/my-orders2/:userId
 const PAYMENT_BASE = `${API_BASE}/payment`; // for /details or refund

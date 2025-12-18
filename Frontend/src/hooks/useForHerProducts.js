@@ -6,7 +6,7 @@ export default function useForHerProducts() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const backendUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+  const backendUrl = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
   
   useEffect(() => {
     let ok = true;

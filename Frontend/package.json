@@ -37,7 +37,8 @@
     "react-select": "^5.10.2",
     "socket.io-client": "^4.8.1",
     "swiper": "^11.2.10",
-    "tailwindcss": "^4.1.12"
+    "tailwindcss": "^4.1.12",
+    "vercel": "^50.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

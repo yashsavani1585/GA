@@ -128,7 +128,7 @@ import axios from "axios";
  * Usage: replace your existing Auction.jsx with this file
  */
 
-const BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+const BASE = import.meta.env.VITE_BACKEND_URL || "https://ga-inx6.onrender.com";
 const API_BASE = `${BASE}/api/auction`;
 
 const statusColors = {

@@ -6,7 +6,7 @@ import { usePricing } from "../../context/pricingContext";
 import { isAuthenticated } from "../../utils/auth";
 import emptyImg from "../../assets/Empty.png";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const API = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 
 const formatIN = (n) => Number(n || 0).toLocaleString("en-IN");
 const parseKey = (k) => {

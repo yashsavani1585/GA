@@ -7,7 +7,7 @@ import { isAuthenticated } from "../../utils/auth";
 import { useCart } from "../../context/cartContext";
 import { usePricing } from "../../context/pricingContext";
 
-const backendUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const backendUrl = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 const formatIN = (n) => Number(n || 0).toLocaleString("en-IN");
 const fullCache = new Map();
 

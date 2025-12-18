@@ -558,7 +558,7 @@ import { toast } from "react-hot-toast";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import logoPng from "/logo.png"; // adjust path if needed
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 const VERIFY_URL = `${API_BASE}/payment2/verify`; // server endpoint (must be server-side)
 
 function paiseToRupeesStr(paise) {

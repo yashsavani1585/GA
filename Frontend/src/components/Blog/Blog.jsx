@@ -11,7 +11,7 @@ const Blog = () => {
     // Fetch all blogs
     const fetchBlogs = async () => {
         try {
-            const { data } = await axios.get("http://localhost:4000/api/blog/getAll");
+            const { data } = await axios.get("https://ga-inx6.onrender.com/api/blog/getAll");
             setBlogs(data.blogs || []);
         } catch (error) {
             console.error("Error fetching blogs:", error);

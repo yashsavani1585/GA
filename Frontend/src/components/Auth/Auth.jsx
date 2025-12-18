@@ -18,7 +18,7 @@ import AuthLR from "../../assets/Auth.png";
 import  axios  from "axios";
 
 const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+  import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 
   axios.defaults.withCredentials = true; // critical for OAuth state
 

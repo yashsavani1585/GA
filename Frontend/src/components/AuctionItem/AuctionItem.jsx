@@ -598,7 +598,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+const BASE = import.meta.env.VITE_BACKEND_URL || "https://ga-inx6.onrender.com";
 const AUCTION_API = `${BASE}/api/auction`;
 const PAYMENT_API = `${BASE}/api/payment2`;
 const ADS_API = `${BASE}/api/ads`;

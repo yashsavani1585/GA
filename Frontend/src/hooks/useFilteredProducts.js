@@ -7,7 +7,7 @@ export default function useFilteredProducts(category) {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({});
 
-  const backendUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+  const backendUrl = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 
   const fetchProducts = useCallback(async (filterParams = {}) => {
     try {

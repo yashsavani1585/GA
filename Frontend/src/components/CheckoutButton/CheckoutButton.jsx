@@ -1,7 +1,7 @@
 import React from "react";
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const API = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 
 const CheckoutButton = ({ cartTotal, paymentId }) => {
   const handleCheckout = async () => {

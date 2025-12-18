@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import profileImage from "../../assets/jawellarycontactPage.png";
 
-const USER_BASE = `http://localhost:4000/api/user`;
+const USER_BASE = `https://ga-inx6.onrender.com/api/user`;
 
 const splitName = (user) => {
   if (user?.firstName || user?.lastName) {

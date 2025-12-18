@@ -6,7 +6,7 @@ import { Link, useSearchParams } from "react-router-dom";
 const PAYMENT_BASE =
   import.meta.env.VITE_API_BASE_URL
     ? `${import.meta.env.VITE_API_BASE_URL}/payment2`
-    : "http://localhost:4000/api/payment2";
+    : "https://ga-inx6.onrender.com/api/payment2";
 
 function toRupeesFromPaise(paise) {
   if (paise == null) return "0.00";

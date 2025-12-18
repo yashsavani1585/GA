@@ -10,7 +10,7 @@ import diamond from "../../assets/diamond.png";
 import check from "../../assets/check.png";
 import logoPng from "../../../public/logo.png";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const API = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
 
 const OrderConfirm = () => {
     const { orderData, userDetails, isDetailsSaved, saveUserDetails, clearOrder } = useOrder();
