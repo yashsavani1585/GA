@@ -5,7 +5,7 @@ import {
   getBlogById,
   deleteBlog,
   updateBlog,
-} from "../Controllers/BlogController.js";
+} from "../controllers/BlogController.js";
 import { upload } from "../middleware/multer.js";
 import { authUser } from "../middleware/auth.js";
 
