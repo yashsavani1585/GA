@@ -70,6 +70,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://ga-inx6.onrender.com",
+  "https://sparkleandshine.vercel.app/",
+  "https://sparkleandshine.vercel.app"
 ];
 
 app.use(
