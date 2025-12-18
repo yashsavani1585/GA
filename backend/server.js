@@ -69,7 +69,7 @@ app.use(
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "https://everglowb2b.onrender.com",
+  "https://ga-inx6.onrender.com",
 ];
 
 app.use(
