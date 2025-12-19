@@ -642,7 +642,7 @@ import PromotionalBanner from "../../assets/productAds0.png";
 import ProductCard from "../ProductCard/ProductCard";
 
 /* 🔹 config */
-const API = import.meta.env.VITE_API_BASE_URL || "https://ga-inx6.onrender.com/api";
+const API = "https://ga-inx6.onrender.com/api";
 
 /* 🔹 DiscoverBlock */
 const DiscoverBlock = ({ title, subtitle, buttonText }) => (
